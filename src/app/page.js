@@ -46,8 +46,8 @@ const confettiPieceVariants = {
 
 const floatingUpBalloonVariants = {
   initial: (i) => ({
-    x: 0, // Default for server-side
-    y: 20, // Placeholder
+    x: 0,
+    y: 200 + i * 50, // Start below the viewport
     scale: 0.6 + Math.random() * 0.4,
     opacity: 0,
     rotate: (Math.random() - 0.5) * 40,
@@ -72,14 +72,14 @@ const floatingUpBalloonVariants = {
 
 const flyingBalloonVariants = {
   initial: (i) => ({
-    x: -100, // Placeholder
-    y: 50, // Placeholder
+    x: -100,
+    y: Math.random() * 300 + 100, // Start at different heights
     scale: 0.4 + Math.random() * 0.3,
     opacity: 0.8 + Math.random() * 0.2,
     rotate: (Math.random() - 0.5) * 60,
   }),
   animate: {
-    x: "100vw", // Use viewport width for dynamic movement
+    x: "120vw", // Move across the screen
     transition: {
       duration: 10 + Math.random() * 5,
       ease: "easeInOut",
@@ -95,7 +95,7 @@ const balloonColors = ["#ff69b4", "#add8e6", "#90ee90", "#ffff00", "#ffa07a"];
 const confettiColors = ["#fce77d", "#aee1e1", "#f78ca0", "#99f2c8", "#f47fff"];
 
 const generateConfetti = (container, count = 30) => {
-  if (typeof window !== "undefined") {
+  if (container) {
     for (let i = 0; i < count; i++) {
       const confetti = document.createElement("div");
       confetti.className = "absolute w-3 h-3 rounded-full";
@@ -103,8 +103,8 @@ const generateConfetti = (container, count = 30) => {
         confettiColors[i % confettiColors.length];
       container.appendChild(confetti);
 
-      const startX = window.innerWidth / 2 + Math.random() * 100 - 50;
-      const startY = window.innerHeight / 3;
+      const startX = container.offsetWidth / 2 + Math.random() * 100 - 50;
+      const startY = container.offsetHeight / 3;
 
       animate(confettiPieceVariants.animate, {
         from: {
@@ -145,89 +145,42 @@ export default function Home() {
   const [floatingUpBalloonsState, setFloatingUpBalloonsState] = useState([]);
   const [showPartyPopper, setShowPartyPopper] = useState(false);
   const partyPopperRef = useRef(null);
+  const confettiContainerRef = useRef(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const duration = 2;
-      const interval = 0.1;
-      let count = 0;
-
-      const confettiInterval = setInterval(() => {
-        const confettiContainer = document.getElementById("confetti-container");
-        if (confettiContainer && count < 20) {
-          // Reduced continuous confetti
-          const confetti = document.createElement("div");
-          confetti.className = "absolute w-2 h-2 rounded-full bg-white";
-          confettiContainer.appendChild(confetti);
-
-          const randomX = Math.random() * window.innerWidth;
-          const randomDelay = Math.random() * 0.8;
-          const randomScale = 0.4 + Math.random() * 0.6;
-          const randomRotate = Math.random() * 360;
-
-          animate(
-            {
-              y: window.innerHeight + 50,
-              x: randomX,
-              opacity: [1, 0],
-              scale: randomScale,
-              rotate: randomRotate,
-              transition: {
-                duration: 2 + Math.random() * 1,
-                delay: randomDelay,
-                ease: "easeIn",
-              },
-            },
-            { node: confetti }
-          );
-          count++;
-        } else if (count >= 20) {
-          clearInterval(confettiInterval);
-        }
-      }, interval * 1000);
-
-      if (videoRef.current) {
-        videoRef.current.play().catch((error) => {
-          console.error("Autoplay prevented:", error);
-        });
-      }
-
-      // Initialize floating up balloons
-      floatingUpBalloons.current = [...Array(5)].map((_, i) => ({
-        id: i,
-        x: Math.random() * window.innerWidth - window.innerWidth / 2,
-        y: window.innerHeight + 50 + i * 50, // Initial Y for client-side
-      }));
-      setFloatingUpBalloonsState([...floatingUpBalloons.current]);
-
-      return () => clearInterval(confettiInterval);
-    }
+    // Initialize floating up balloons
+    floatingUpBalloons.current = [...Array(5)].map((_, i) => ({
+      id: i,
+      x:
+        Math.random() *
+          (typeof window !== "undefined" ? window.innerWidth : 600) -
+        300,
+    }));
+    setFloatingUpBalloonsState([...floatingUpBalloons.current]);
   }, []);
 
-  // Update initial balloon positions after client-side rendering
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      setFloatingUpBalloonsState((prev) =>
-        prev.map((balloon, i) => ({
-          ...balloon,
-          y: window.innerHeight + 50 + i * 50,
-        }))
-      );
+    if (videoRef.current) {
+      videoRef.current.play().catch((error) => {
+        console.error("Autoplay prevented:", error);
+      });
     }
-  }, []);
+  }, [videoRef]);
 
   const triggerPartyPopper = () => {
     setShowPartyPopper(true);
     const popperContainer = partyPopperRef.current;
-    if (popperContainer && typeof window !== "undefined") {
-      generateConfetti(popperContainer);
+    const confettiContainer = confettiContainerRef.current;
+    if (popperContainer && confettiContainer) {
+      generateConfetti(confettiContainer);
     }
-    setTimeout(() => setShowPartyPopper(false), 2000); // Hide popper after animation
+    setTimeout(() => setShowPartyPopper(false), 2000);
   };
 
   return (
     <motion.div className="flex flex-col items-center justify-center min-h-screen p-6 sm:p-8 overflow-hidden relative bg-gradient-to-br from-purple-400 via-pink-500 to-red-500">
       <div
+        ref={confettiContainerRef}
         id="confetti-container"
         className="absolute top-0 left-0 w-full h-full pointer-events-none"
       ></div>
@@ -247,7 +200,7 @@ export default function Home() {
         )}
       </div>
 
-      {floatingUpBalloonsState.map((balloon) => (
+      {floatingUpBalloonsState.map((balloon, index) => (
         <motion.div
           key={balloon.id}
           className="absolute w-12 h-16 sm:w-16 sm:h-20 rounded-full pointer-events-none"
@@ -255,18 +208,9 @@ export default function Home() {
             backgroundColor: balloonColors[balloon.id % balloonColors.length],
           }}
           variants={floatingUpBalloonVariants}
-          initial={{
-            x: balloon.x,
-            y: 20, // Placeholder for server-side
-            scale: 0.6 + Math.random() * 0.4,
-            opacity: 0,
-            rotate: (Math.random() - 0.5) * 40,
-          }}
-          animate={{
-            ...floatingUpBalloonVariants.animate,
-            y: -200,
-          }}
-          custom={balloon.id}
+          initial="initial"
+          animate="animate"
+          custom={index}
         />
       ))}
 
@@ -279,26 +223,8 @@ export default function Home() {
             backgroundColor: balloonColors[(i * 2) % balloonColors.length],
           }}
           variants={flyingBalloonVariants}
-          initial={{
-            x: -150 - Math.random() * 100,
-            y: 50, // Placeholder for server-side
-            scale: 0.3 + Math.random() * 0.4,
-            opacity: 0.7 + Math.random() * 0.3,
-            rotate: (Math.random() - 0.5) * 90,
-          }}
-          animate={{
-            x:
-              typeof window !== "undefined"
-                ? window.innerWidth + 150 + Math.random() * 100
-                : 1000,
-            transition: {
-              duration: 12 + Math.random() * 7,
-              ease: "easeInOut",
-              delay: Math.random() * 3,
-              repeat: Infinity,
-              repeatType: "loop",
-            },
-          }}
+          initial="initial"
+          animate="animate"
           custom={i}
         />
       ))}
