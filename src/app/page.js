@@ -47,7 +47,7 @@ const confettiPieceVariants = {
 const floatingUpBalloonVariants = {
   initial: (i) => ({
     x: 0, // Default for server-side
-    y: window?.innerHeight + 50 + i * 50 || 20,
+    y: 20, // Placeholder
     scale: 0.6 + Math.random() * 0.4,
     opacity: 0,
     rotate: (Math.random() - 0.5) * 40,
@@ -72,10 +72,8 @@ const floatingUpBalloonVariants = {
 
 const flyingBalloonVariants = {
   initial: (i) => ({
-    x: -100,
-    y:
-      Math.random() * window?.innerHeight * 0.6 +
-      (window?.innerHeight * 0.1 || 50), // Default if window is undefined
+    x: -100, // Placeholder
+    y: 50, // Placeholder
     scale: 0.4 + Math.random() * 0.3,
     opacity: 0.8 + Math.random() * 0.2,
     rotate: (Math.random() - 0.5) * 60,
@@ -97,30 +95,35 @@ const balloonColors = ["#ff69b4", "#add8e6", "#90ee90", "#ffff00", "#ffa07a"];
 const confettiColors = ["#fce77d", "#aee1e1", "#f78ca0", "#99f2c8", "#f47fff"];
 
 const generateConfetti = (container, count = 30) => {
-  for (let i = 0; i < count; i++) {
-    const confetti = document.createElement("div");
-    confetti.className = "absolute w-3 h-3 rounded-full";
-    confetti.style.backgroundColor = confettiColors[i % confettiColors.length];
-    container.appendChild(confetti);
+  if (typeof window !== "undefined") {
+    for (let i = 0; i < count; i++) {
+      const confetti = document.createElement("div");
+      confetti.className = "absolute w-3 h-3 rounded-full";
+      confetti.style.backgroundColor =
+        confettiColors[i % confettiColors.length];
+      container.appendChild(confetti);
 
-    const startX = window.innerWidth / 2 + Math.random() * 100 - 50;
-    const startY = window.innerHeight / 3;
+      const startX = window.innerWidth / 2 + Math.random() * 100 - 50;
+      const startY = window.innerHeight / 3;
 
-    animate(confettiPieceVariants.animate, {
-      from: {
-        ...confettiPieceVariants.initial,
-        x: startX,
-        y: startY,
-      },
-      transition: {
-        ...confettiPieceVariants.animate.transition,
-        delay: Math.random() * 0.5,
-      },
-      onComplete: () => {
-        container.removeChild(confetti);
-      },
-      node: confetti,
-    });
+      animate(confettiPieceVariants.animate, {
+        from: {
+          ...confettiPieceVariants.initial,
+          x: startX,
+          y: startY,
+        },
+        transition: {
+          ...confettiPieceVariants.animate.transition,
+          delay: Math.random() * 0.5,
+        },
+        onComplete: () => {
+          if (container && confetti.parentNode === container) {
+            container.removeChild(confetti);
+          }
+        },
+        node: confetti,
+      });
+    }
   }
 };
 
@@ -144,64 +147,79 @@ export default function Home() {
   const partyPopperRef = useRef(null);
 
   useEffect(() => {
-    const duration = 2;
-    const interval = 0.1;
-    let count = 0;
+    if (typeof window !== "undefined") {
+      const duration = 2;
+      const interval = 0.1;
+      let count = 0;
 
-    const confettiInterval = setInterval(() => {
-      const confettiContainer = document.getElementById("confetti-container");
-      if (confettiContainer && count < 20) {
-        // Reduced continuous confetti
-        const confetti = document.createElement("div");
-        confetti.className = "absolute w-2 h-2 rounded-full bg-white";
-        confettiContainer.appendChild(confetti);
+      const confettiInterval = setInterval(() => {
+        const confettiContainer = document.getElementById("confetti-container");
+        if (confettiContainer && count < 20) {
+          // Reduced continuous confetti
+          const confetti = document.createElement("div");
+          confetti.className = "absolute w-2 h-2 rounded-full bg-white";
+          confettiContainer.appendChild(confetti);
 
-        const randomX = Math.random() * window.innerWidth;
-        const randomDelay = Math.random() * 0.8;
-        const randomScale = 0.4 + Math.random() * 0.6;
-        const randomRotate = Math.random() * 360;
+          const randomX = Math.random() * window.innerWidth;
+          const randomDelay = Math.random() * 0.8;
+          const randomScale = 0.4 + Math.random() * 0.6;
+          const randomRotate = Math.random() * 360;
 
-        animate(
-          {
-            y: window.innerHeight + 50,
-            x: randomX,
-            opacity: [1, 0],
-            scale: randomScale,
-            rotate: randomRotate,
-            transition: {
-              duration: 2 + Math.random() * 1,
-              delay: randomDelay,
-              ease: "easeIn",
+          animate(
+            {
+              y: window.innerHeight + 50,
+              x: randomX,
+              opacity: [1, 0],
+              scale: randomScale,
+              rotate: randomRotate,
+              transition: {
+                duration: 2 + Math.random() * 1,
+                delay: randomDelay,
+                ease: "easeIn",
+              },
             },
-          },
-          { node: confetti }
-        );
-        count++;
-      } else if (count >= 20) {
-        clearInterval(confettiInterval);
+            { node: confetti }
+          );
+          count++;
+        } else if (count >= 20) {
+          clearInterval(confettiInterval);
+        }
+      }, interval * 1000);
+
+      if (videoRef.current) {
+        videoRef.current.play().catch((error) => {
+          console.error("Autoplay prevented:", error);
+        });
       }
-    }, interval * 1000);
 
-    if (videoRef.current) {
-      videoRef.current.play().catch((error) => {
-        console.error("Autoplay prevented:", error);
-      });
+      // Initialize floating up balloons
+      floatingUpBalloons.current = [...Array(5)].map((_, i) => ({
+        id: i,
+        x: Math.random() * window.innerWidth - window.innerWidth / 2,
+        y: window.innerHeight + 50 + i * 50, // Initial Y for client-side
+      }));
+      setFloatingUpBalloonsState([...floatingUpBalloons.current]);
+
+      return () => clearInterval(confettiInterval);
     }
+  }, []);
 
-    // Initialize floating up balloons
-    floatingUpBalloons.current = [...Array(5)].map((_, i) => ({
-      id: i,
-      x: Math.random() * window.innerWidth - window.innerWidth / 2,
-    }));
-    setFloatingUpBalloonsState([...floatingUpBalloons.current]);
-
-    return () => clearInterval(confettiInterval);
+  // Update initial balloon positions after client-side rendering
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      setFloatingUpBalloonsState((prev) =>
+        prev.map((balloon, i) => ({
+          ...balloon,
+          y: window.innerHeight + 50 + i * 50,
+        }))
+      );
+    }
   }, []);
 
   const triggerPartyPopper = () => {
     setShowPartyPopper(true);
     const popperContainer = partyPopperRef.current;
-    if (popperContainer) {
+    if (popperContainer && typeof window !== "undefined") {
       generateConfetti(popperContainer);
     }
     setTimeout(() => setShowPartyPopper(false), 2000); // Hide popper after animation
@@ -239,12 +257,15 @@ export default function Home() {
           variants={floatingUpBalloonVariants}
           initial={{
             x: balloon.x,
-            y: window?.innerHeight + 50 + balloon.id * 50 || 20,
+            y: 20, // Placeholder for server-side
             scale: 0.6 + Math.random() * 0.4,
             opacity: 0,
             rotate: (Math.random() - 0.5) * 40,
           }}
-          animate="animate"
+          animate={{
+            ...floatingUpBalloonVariants.animate,
+            y: -200,
+          }}
           custom={balloon.id}
         />
       ))}
@@ -260,15 +281,16 @@ export default function Home() {
           variants={flyingBalloonVariants}
           initial={{
             x: -150 - Math.random() * 100,
-            y:
-              Math.random() * window?.innerHeight * 0.7 +
-              (window?.innerHeight * 0.05 || 20),
+            y: 50, // Placeholder for server-side
             scale: 0.3 + Math.random() * 0.4,
             opacity: 0.7 + Math.random() * 0.3,
             rotate: (Math.random() - 0.5) * 90,
           }}
           animate={{
-            x: window.innerWidth + 150 + Math.random() * 100,
+            x:
+              typeof window !== "undefined"
+                ? window.innerWidth + 150 + Math.random() * 100
+                : 1000,
             transition: {
               duration: 12 + Math.random() * 7,
               ease: "easeInOut",
@@ -329,7 +351,7 @@ export default function Home() {
           autoPlay
           loop
           muted
-          className="rounded-full object-cover w-full h-full"
+          className="rounded-full object-contain w-full h-full mb-[20px]"
         />
       </motion.div>
       <motion.p
@@ -378,7 +400,7 @@ export default function Home() {
           🎁
         </motion.div>
         <motion.div
-          className="w-10 h-10 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center shadow-lg text-xl sm:text-2xl cursor-pointer hover:scale-110 transition-transform"
+          className="w-10 h-10 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center shadow-lg text-sm:text-2xl cursor-pointer hover:scale-110 transition-transform"
           variants={cakeVariants}
           initial="initial"
           animate="animate"
