@@ -289,7 +289,7 @@ export default function Home() {
         className="text-center mb-6 sm:mb-8 z-10"
       >
         <motion.h1
-          className={`text-2xl sm:text-5xl font-bold transition-colors duration-300 mb-1 sm:mb-2 drop-shadow-md ${
+          className={`text-3xl sm:text-5xl font-bold transition-colors duration-300 mb-1 sm:mb-2 drop-shadow-md ${
             isDarkMode ? "text-white" : "text-white"
           }`}
           style={{ color: textColor, textShadow: `2px 2px 4px ${shadowColor}` }}
@@ -323,7 +323,7 @@ export default function Home() {
       </motion.div>
 
       <motion.div
-        className="mb-4 sm:mb-8 relative w-64 h-64 sm:w-64 sm:h-64 rounded-full overflow-hidden shadow-xl cursor-pointer hover:scale-105 transition-transform duration-300 z-10"
+        className="mb-4 sm:mb-8 relative w-[300px] h-[300px] sm:w-64 sm:h-64 rounded-full overflow-hidden shadow-xl cursor-pointer hover:scale-105 transition-transform duration-300 z-10"
         style={{ scale: imageScale, opacity: imageOpacity }}
         initial={{ rotate: 5, scale: 0.7 }}
         animate={{ rotate: 0, scale: 1 }}
