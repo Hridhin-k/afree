@@ -143,7 +143,7 @@ export default function Home() {
 
   const floatingUpBalloons = useRef([]);
   const [floatingUpBalloonsState, setFloatingUpBalloonsState] = useState([]);
-  const [showPartyPopper, setShowPartyPopper] = useState(true);
+  const [showPartyPopper, setShowPartyPopper] = useState(false);
   const partyPopperRef = useRef(null);
 
   useEffect(() => {
@@ -321,7 +321,7 @@ export default function Home() {
             stiffness: 120,
           }}
         >
-          🎉 Tap for a Surprise! 🎂
+          🎉 Birthday wishes Afree! 🎂
         </motion.h1>
         <motion.p
           className="text-lg sm:text-3xl text-white drop-shadow-md"
@@ -334,7 +334,7 @@ export default function Home() {
             stiffness: 120,
           }}
         >
-          Celebrate with us! 🎈🎁🎊
+          Have lots of fun! 🎈🎁🎊
         </motion.p>
       </motion.div>
 
