@@ -1,7 +1,6 @@
 "use client";
 import { motion, useTransform, useScroll, animate } from "framer-motion";
-import Image from "next/image"; // Removed Image import
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 const balloonVariants = {
   initial: { y: 20, opacity: 0, scale: 0.5 },
@@ -21,31 +20,108 @@ const cakeVariants = {
   exit: { y: -150, opacity: 0, scale: 0.7 },
 };
 
-const confettiVariants = {
-  initial: (i) => ({
-    x: `calc(${i * 10}px - 50px)`,
-    y: -20,
+const confettiPieceVariants = {
+  initial: {
+    x: 0,
+    y: 0,
     opacity: 0,
-    scale: 0.3,
-    rotate: Math.random() * 360,
-  }),
+    scale: 0.5,
+    rotate: 0,
+  },
   animate: {
-    y: "120vh",
-    opacity: [0, 1, 0],
-    scale: [0.3, 1, 0.5],
-    rotate: [0, 720],
+    y: ["-20vh", "120vh"],
+    x: () => [
+      `${Math.random() * 200 - 100}px`,
+      `${Math.random() * 200 - 100}px`,
+    ],
+    opacity: [1, 0],
+    scale: [0.7, 0.9],
+    rotate: () => [Math.random() * 360 - 180, Math.random() * 720 - 360],
     transition: {
       duration: 2,
-      delay: Math.random() * 0.5,
       ease: [0.61, 1, 0.88, 1],
     },
   },
-  exit: {
-    y: "150vh",
+};
+
+const floatingUpBalloonVariants = {
+  initial: (i) => ({
+    x: 0, // Default for server-side
+    y: window?.innerHeight + 50 + i * 50 || 20,
+    scale: 0.6 + Math.random() * 0.4,
     opacity: 0,
-    scale: 0.2,
+    rotate: (Math.random() - 0.5) * 40,
+  }),
+  animate: {
+    y: -200,
+    opacity: 1,
+    transition: {
+      duration: 8 + Math.random() * 4,
+      ease: "linear",
+      delay: Math.random() * 2,
+      repeat: Infinity,
+      repeatType: "loop",
+    },
+  },
+  exit: {
+    y: -300,
+    opacity: 0,
     transition: { duration: 0.5 },
   },
+};
+
+const flyingBalloonVariants = {
+  initial: (i) => ({
+    x: -100,
+    y:
+      Math.random() * window?.innerHeight * 0.6 +
+      (window?.innerHeight * 0.1 || 50), // Default if window is undefined
+    scale: 0.4 + Math.random() * 0.3,
+    opacity: 0.8 + Math.random() * 0.2,
+    rotate: (Math.random() - 0.5) * 60,
+  }),
+  animate: {
+    x: "100vw", // Use viewport width for dynamic movement
+    transition: {
+      duration: 10 + Math.random() * 5,
+      ease: "easeInOut",
+      delay: Math.random() * 2,
+      repeat: Infinity,
+      repeatType: "loop",
+    },
+  },
+  exit: { opacity: 0, transition: { duration: 0.3 } },
+};
+
+const balloonColors = ["#ff69b4", "#add8e6", "#90ee90", "#ffff00", "#ffa07a"];
+const confettiColors = ["#fce77d", "#aee1e1", "#f78ca0", "#99f2c8", "#f47fff"];
+
+const generateConfetti = (container, count = 30) => {
+  for (let i = 0; i < count; i++) {
+    const confetti = document.createElement("div");
+    confetti.className = "absolute w-3 h-3 rounded-full";
+    confetti.style.backgroundColor = confettiColors[i % confettiColors.length];
+    container.appendChild(confetti);
+
+    const startX = window.innerWidth / 2 + Math.random() * 100 - 50;
+    const startY = window.innerHeight / 3;
+
+    animate(confettiPieceVariants.animate, {
+      from: {
+        ...confettiPieceVariants.initial,
+        x: startX,
+        y: startY,
+      },
+      transition: {
+        ...confettiPieceVariants.animate.transition,
+        delay: Math.random() * 0.5,
+      },
+      onComplete: () => {
+        container.removeChild(confetti);
+      },
+      node: confetti,
+    });
+  }
 };
 
 export default function Home() {
@@ -58,25 +134,31 @@ export default function Home() {
   const backgroundSaturation = useTransform(scrollYProgress, [0, 1], [80, 90]);
   const backgroundLightness = useTransform(scrollYProgress, [0, 1], [70, 80]);
 
-  const videoRef = useRef(null); // Ref for the video element
+  const videoRef = useRef(null);
   const imageScale = useTransform(scrollYProgress, [0, 0.2], [1, 1.2]);
   const imageOpacity = useTransform(scrollYProgress, [0, 0.3], [1, 0.8]);
 
+  const floatingUpBalloons = useRef([]);
+  const [floatingUpBalloonsState, setFloatingUpBalloonsState] = useState([]);
+  const [showPartyPopper, setShowPartyPopper] = useState(true);
+  const partyPopperRef = useRef(null);
+
   useEffect(() => {
-    const duration = 2; // seconds
-    const interval = 0.1; // seconds
+    const duration = 2;
+    const interval = 0.1;
     let count = 0;
 
     const confettiInterval = setInterval(() => {
       const confettiContainer = document.getElementById("confetti-container");
-      if (confettiContainer && count < 50) {
+      if (confettiContainer && count < 20) {
+        // Reduced continuous confetti
         const confetti = document.createElement("div");
-        confetti.className = "absolute w-3 h-3 rounded-full bg-white";
+        confetti.className = "absolute w-2 h-2 rounded-full bg-white";
         confettiContainer.appendChild(confetti);
 
         const randomX = Math.random() * window.innerWidth;
         const randomDelay = Math.random() * 0.8;
-        const randomScale = 0.5 + Math.random() * 0.8;
+        const randomScale = 0.4 + Math.random() * 0.6;
         const randomRotate = Math.random() * 360;
 
         animate(
@@ -95,21 +177,35 @@ export default function Home() {
           { node: confetti }
         );
         count++;
-      } else if (count >= 50) {
+      } else if (count >= 20) {
         clearInterval(confettiInterval);
       }
     }, interval * 1000);
 
-    // Autoplay the video when the component mounts
     if (videoRef.current) {
       videoRef.current.play().catch((error) => {
-        // Handle the autoplay being prevented (e.g., due to browser policies)
         console.error("Autoplay prevented:", error);
       });
     }
 
+    // Initialize floating up balloons
+    floatingUpBalloons.current = [...Array(5)].map((_, i) => ({
+      id: i,
+      x: Math.random() * window.innerWidth - window.innerWidth / 2,
+    }));
+    setFloatingUpBalloonsState([...floatingUpBalloons.current]);
+
     return () => clearInterval(confettiInterval);
   }, []);
+
+  const triggerPartyPopper = () => {
+    setShowPartyPopper(true);
+    const popperContainer = partyPopperRef.current;
+    if (popperContainer) {
+      generateConfetti(popperContainer);
+    }
+    setTimeout(() => setShowPartyPopper(false), 2000); // Hide popper after animation
+  };
 
   return (
     <motion.div className="flex flex-col items-center justify-center min-h-screen p-6 sm:p-8 overflow-hidden relative bg-gradient-to-br from-purple-400 via-pink-500 to-red-500">
@@ -117,15 +213,83 @@ export default function Home() {
         id="confetti-container"
         className="absolute top-0 left-0 w-full h-full pointer-events-none"
       ></div>
+      <div
+        ref={partyPopperRef}
+        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none"
+      >
+        {showPartyPopper && (
+          <motion.div
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ duration: 0.3 }}
+            className="text-center text-white text-xl"
+          >
+            🎉
+          </motion.div>
+        )}
+      </div>
+
+      {floatingUpBalloonsState.map((balloon) => (
+        <motion.div
+          key={balloon.id}
+          className="absolute w-12 h-16 sm:w-16 sm:h-20 rounded-full pointer-events-none"
+          style={{
+            backgroundColor: balloonColors[balloon.id % balloonColors.length],
+          }}
+          variants={floatingUpBalloonVariants}
+          initial={{
+            x: balloon.x,
+            y: window?.innerHeight + 50 + balloon.id * 50 || 20,
+            scale: 0.6 + Math.random() * 0.4,
+            opacity: 0,
+            rotate: (Math.random() - 0.5) * 40,
+          }}
+          animate="animate"
+          custom={balloon.id}
+        />
+      ))}
+
+      {/* Flying Balloons with more randomness */}
+      {[...Array(4)].map((_, i) => (
+        <motion.div
+          key={`flying-balloon-${i}`}
+          className="absolute w-10 h-14 sm:w-12 sm:h-16 rounded-full pointer-events-none"
+          style={{
+            backgroundColor: balloonColors[(i * 2) % balloonColors.length],
+          }}
+          variants={flyingBalloonVariants}
+          initial={{
+            x: -150 - Math.random() * 100,
+            y:
+              Math.random() * window?.innerHeight * 0.7 +
+              (window?.innerHeight * 0.05 || 20),
+            scale: 0.3 + Math.random() * 0.4,
+            opacity: 0.7 + Math.random() * 0.3,
+            rotate: (Math.random() - 0.5) * 90,
+          }}
+          animate={{
+            x: window.innerWidth + 150 + Math.random() * 100,
+            transition: {
+              duration: 12 + Math.random() * 7,
+              ease: "easeInOut",
+              delay: Math.random() * 3,
+              repeat: Infinity,
+              repeatType: "loop",
+            },
+          }}
+          custom={i}
+        />
+      ))}
 
       <motion.div
         initial={{ opacity: 0, scale: 0.7, y: -50 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.8, ease: "easeInOut" }}
-        className="text-center mb-8 sm:mb-10" // Reduced mobile margin
+        className="text-center mb-8 sm:mb-10 z-10 cursor-pointer"
+        onClick={triggerPartyPopper}
       >
         <motion.h1
-          className="text-3xl sm:text-7xl font-bold text-white mb-2 sm:mb-3 drop-shadow-md" // Reduced mobile margin and font size
+          className="text-3xl sm:text-7xl font-bold text-white mb-2 sm:mb-3 drop-shadow-md animate-pulse" // Added pulse animation
           initial={{ y: -150, opacity: 0, rotate: -10 }}
           animate={{ y: 0, opacity: 1, rotate: 0 }}
           transition={{
@@ -135,10 +299,10 @@ export default function Home() {
             stiffness: 120,
           }}
         >
-          🎉 Its Birthday Time! 🎂
+          🎉 Tap for a Surprise! 🎂
         </motion.h1>
         <motion.p
-          className="text-lg sm:text-3xl text-white drop-shadow-md" // Adjusted mobile font size
+          className="text-lg sm:text-3xl text-white drop-shadow-md"
           initial={{ y: 150, opacity: 0, rotate: 10 }}
           animate={{ y: 0, opacity: 1, rotate: 0 }}
           transition={{
@@ -148,12 +312,12 @@ export default function Home() {
             stiffness: 120,
           }}
         >
-          Get ready for some fun! 🎈🎁🎊
+          Celebrate with us! 🎈🎁🎊
         </motion.p>
       </motion.div>
 
       <motion.div
-        className=" mb-[20px] relative w-48 h-48 sm:w-64 sm:h-64 rounded-full overflow-hidden shadow-xl cursor-pointer hover:scale-100 transition-transform duration-300 mb-6 sm:mb-0" // Added mobile margin
+        className=" mb-[20px] relative w-64 h-64 sm:w-64 sm:h-64 rounded-full overflow-hidden shadow-xl cursor-pointer hover:scale-100 transition-transform duration-300 sm:mb-0 z-10"
         style={{ scale: imageScale, opacity: imageOpacity }}
         initial={{ rotate: 10, scale: 0.8 }}
         animate={{ rotate: 0, scale: 1 }}
@@ -161,30 +325,30 @@ export default function Home() {
       >
         <video
           ref={videoRef}
-          src="/video/afree.mp4" // Replace with the actual path to your video
+          src="/video/afree.mp4"
           autoPlay
           loop
-          muted // Important for autoplay in many browsers
-          className="rounded-full object-contain w-full h-full"
+          muted
+          className="rounded-full object-cover w-full h-full"
         />
       </motion.div>
       <motion.p
-        className="text-base sm:text-2xl text-white  mt-[20px] drop-shadow-md" // Adjusted mobile font size and margin
+        className="text-base sm:text-2xl text-white  mt-[20px] drop-shadow-md z-10"
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.9, duration: 0.5 }}
       >
-        Celebrating someone special! ✨
+        Wishing you a very happy birthday! ✨
       </motion.p>
 
       <motion.div
-        className="fixed bottom-4 sm:bottom-10 flex space-x-3 sm:space-x-4" // Reduced mobile bottom and spacing
+        className="fixed bottom-4 sm:bottom-10 flex space-x-3 sm:space-x-4 z-10"
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 1.2, duration: 0.6 }}
       >
         <motion.div
-          className="w-10 h-10 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center shadow-lg text-xl sm:text-2xl cursor-pointer" // Reduced mobile size
+          className="w-10 h-10 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center shadow-lg text-xl sm:text-2xl cursor-pointer hover:scale-110 transition-transform"
           variants={balloonVariants}
           initial="initial"
           animate="animate"
@@ -199,7 +363,7 @@ export default function Home() {
           🎈
         </motion.div>
         <motion.div
-          className="w-10 h-10 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center shadow-lg text-xl sm:text-2xl cursor-pointer" // Reduced mobile size
+          className="w-10 h-10 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center shadow-lg text-xl sm:text-2xl cursor-pointer hover:scale-110 transition-transform"
           variants={giftVariants}
           initial="initial"
           animate="animate"
@@ -214,7 +378,7 @@ export default function Home() {
           🎁
         </motion.div>
         <motion.div
-          className="w-10 h-10 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center shadow-lg text-xl sm:text-2xl cursor-pointer" // Reduced mobile size
+          className="w-10 h-10 sm:w-16 sm:h-16 bg-white rounded-full flex items-center justify-center shadow-lg text-xl sm:text-2xl cursor-pointer hover:scale-110 transition-transform"
           variants={cakeVariants}
           initial="initial"
           animate="animate"
